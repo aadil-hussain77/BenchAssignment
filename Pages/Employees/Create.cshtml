@@ -1,0 +1,17 @@
+@page
+@model MyAppBenchAssignment.Pages.Employees.CreateModel
+@{
+    ViewData["Title"] = "Add employee";
+}
+
+<h1>Add employee</h1>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <partial name="_Form" model="Model.Employee" />
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
