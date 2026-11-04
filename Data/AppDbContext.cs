@@ -17,7 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(employee => employee.Department);
             entity.Property(employee => employee.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(employee => employee.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(employee => employee.RowVersion).ValueGeneratedOnAddOrUpdate();
+            entity.Property(employee => employee.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
         });
     }
 
@@ -41,10 +43,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             {
                 entry.Entity.CreatedAt = DateTime.UtcNow;
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
+                entry.Entity.RowVersion = Guid.NewGuid().ToByteArray();
             }
             else if (entry.State == EntityState.Modified)
             {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
+                entry.Entity.RowVersion = Guid.NewGuid().ToByteArray();
             }
         }
     }
