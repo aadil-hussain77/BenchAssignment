@@ -1,0 +1,225 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The template used to create an ECS Service from the ECS Console.",
+  "Parameters": {
+    "ECSClusterName": {
+      "Type": "String",
+      "Default": "my-app-cluster"
+    },
+    "ECSServiceName": {
+      "Type": "String",
+      "Default": "benchassignment-myapp-service"
+    },
+    "SecurityGroupIDs": {
+      "Type": "CommaDelimitedList",
+      "Default": "sg-02eae285e9e365b8f"
+    },
+    "SubnetIDs": {
+      "Type": "CommaDelimitedList",
+      "Default": "subnet-0977ed91df63808c3,subnet-0fe151da961f0c978"
+    },
+    "VpcID": {
+      "Type": "String",
+      "Default": "vpc-073159fe6b5c36d03"
+    },
+    "LoadBalancerName": {
+      "Type": "String",
+      "Default": "my-app-lb"
+    },
+    "DatabaseInstanceClass": {
+  "Type": "String",
+  "Default": "db.t3.micro",
+  "AllowedValues": ["db.t3.micro", "db.t3.small", "db.t3.medium"]
+},
+"TaskSize": {
+  "Type": "String",
+  "Default": "Small",
+  "AllowedValues": ["Small", "Medium", "Large"]
+}
+  },
+  "Mappings":{
+    "TaskSizes": {
+  "Small": { "Cpu": "256", "Memory": "512" },
+  "Medium": { "Cpu": "512", "Memory": "1024" },
+  "Large": { "Cpu": "1024", "Memory": "2048" }
+}
+  },
+  "Resources": {
+    "ECSService": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": "my-app-cluster",
+        "CapacityProviderStrategy": [
+          {
+            "CapacityProvider": "FARGATE",
+            "Base": 0,
+            "Weight": 1
+          }
+        ],
+        "TaskDefinition": { "Ref": "EmployeeTaskDefinition" },
+        "ServiceName": "benchassignment-myapp-service",
+        "SchedulingStrategy": "REPLICA",
+        "DesiredCount": 1,
+        "AvailabilityZoneRebalancing": "ENABLED",
+        "LoadBalancers": [
+          {
+            "ContainerName": "myapp",
+            "ContainerPort": 8080,
+            "LoadBalancerName": {
+              "Ref": "AWS::NoValue"
+            },
+            "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-2:653011867539:targetgroup/my-ecs-tg/df8b77eae9e6313b"
+          }
+        ],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": {
+              "Ref": "SecurityGroupIDs"
+            },
+            "Subnets": {
+              "Ref": "SubnetIDs"
+            }
+          }
+        },
+        "PlatformVersion": "LATEST",
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true,
+            "ResetOnHealthyTask": false,
+            "ThresholdConfiguration": {
+              "Type": "BOUNDED_PERCENT",
+              "Value": 50
+            }
+          },
+          "Strategy": "ROLLING",
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 100
+        },
+        "DeploymentController": {
+          "Type": "ECS"
+        },
+        "ServiceConnectConfiguration": {
+          "Enabled": false
+        },
+        "Tags": [],
+        "EnableECSManagedTags": true,
+        "EnableExecuteCommand": false
+      }
+    },
+    "EmployeeEcrRepository": {
+  "Type": "AWS::ECR::Repository",
+  "DeletionPolicy": "Retain",
+  "UpdateReplacePolicy": "Retain",
+  "Properties": {
+    "RepositoryName": "benchassignment/myapp"
+  }
+  },
+  "EmployeeDatabase": {
+  "Type": "AWS::RDS::DBInstance",
+  "DeletionPolicy": "Retain",
+  "UpdateReplacePolicy": "Retain",
+  "Properties": {
+    "DBInstanceIdentifier": "my-employeee-db",
+    "DBInstanceClass":  { "Ref": "DatabaseInstanceClass" },
+    "Engine": "postgres",
+    "EngineVersion": "18.3",
+    "AllocatedStorage": "20",
+    "StorageType": "gp2",
+    "DBSubnetGroupName": "my-db-private-subnets",
+    "VPCSecurityGroups": [
+      "sg-08e89981b83ed042a"
+    ],
+    "MultiAZ": false,
+    "PubliclyAccessible": false,
+    "BackupRetentionPeriod": 1,
+    "MasterUsername": "postgres"
+  }
+},
+"EmployeeEcsCluster": {
+  "Type": "AWS::ECS::Cluster",
+  "DeletionPolicy": "Retain",
+  "UpdateReplacePolicy": "Retain",
+  "Properties": {
+    "ClusterName": "my-app-cluster",
+    "ClusterSettings": [
+      {
+        "Name": "containerInsights",
+        "Value": "enabled"
+      }
+    ]
+  }
+},
+"EmployeeTaskDefinition": {
+  "Type": "AWS::ECS::TaskDefinition",
+  "DeletionPolicy": "Retain",
+  "UpdateReplacePolicy": "Retain",
+  "Properties": {
+    "Family": "benchassignment-myapp",
+    "Cpu": {
+  "Fn::FindInMap": ["TaskSizes", { "Ref": "TaskSize" }, "Cpu"]
+},
+    "Memory": {
+  "Fn::FindInMap": ["TaskSizes", { "Ref": "TaskSize" }, "Memory"]
+},
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+      "FARGATE"
+    ],
+    "ExecutionRoleArn": "arn:aws:iam::653011867539:role/ecsTaskExecutionRole",
+    "ContainerDefinitions": [
+      {
+        "Name": "myapp",
+        "Image": "653011867539.dkr.ecr.ap-southeast-2.amazonaws.com/benchassignment/myapp:latest",
+        "Essential": true,
+        "PortMappings": [
+          {
+            "ContainerPort": 8080,
+            "Protocol": "tcp"
+          }
+        ],
+        "Environment": [
+          {
+            "Name": "ASPNETCORE_ENVIRONMENT",
+            "Value": "Production"
+          },
+          {
+            "Name": "ASPNETCORE_HTTP_PORTS",
+            "Value": "8080"
+          }
+        ],
+        "Secrets": [
+          {
+            "Name": "ConnectionStrings__DefaultConnection",
+            "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:653011867539:secret:benchassignment/rds-connection-GJj4y7:ConnectionStrings__DefaultConnection::"
+          }
+        ],
+        "LogConfiguration": {
+          "LogDriver": "awslogs",
+          "Options": {
+            "awslogs-group": "/ecs/benchassignment",
+            "awslogs-region":  { "Ref": "AWS::Region" },
+            "awslogs-stream-prefix": "myapp"
+          }
+        }
+      }
+    ]
+  }
+}
+  },
+  "Outputs": {
+    "ClusterName": {
+      "Description": "The cluster used to create the service.",
+      "Value": {
+        "Ref": "ECSClusterName"
+      }
+    },
+    "ECSService": {
+      "Description": "The created service.",
+      "Value": {
+        "Ref": "ECSService"
+      }
+    }
+  }
+}
