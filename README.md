@@ -45,6 +45,23 @@ The CloudFormation stack manages the RDS instance, ECR repository, ECS cluster, 
 
 Review CloudFormation change sets before executing updates. RDS automated backups are enabled with a one-day retention period.
 
+## Deploy Instructions
+
+### Dev
+aws cloudformation deploy \
+  --stack-name IAC-Bench-Template \
+  --template-file iac-bench-template.json \
+  --parameter-overrides file://parameters-dev.json \
+  --region ap-southeast-2
+
+### Prod
+aws cloudformation deploy \
+  --stack-name IAC-Bench-Template-prod \
+  --template-file iac-bench-template.json \
+  --parameter-overrides file://parameters-prod.json \
+  --region ap-southeast-2
+
+
 ## Verification
 
 - Open the ALB DNS name in a browser to reach the application.

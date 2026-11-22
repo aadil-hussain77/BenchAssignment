@@ -1,0 +1,38 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "ECSClusterName",
+    "ParameterValue": "my-app-cluster-prod"
+  },
+  {
+    "ParameterKey": "ECSServiceName",
+    "ParameterValue": "benchassignment-myapp-service-prod"
+  },
+  {
+    "ParameterKey": "VpcID",
+    "ParameterValue": "vpc-REPLACE-WITH-PROD-VPC"
+  },
+  {
+    "ParameterKey": "SecurityGroupIDs",
+    "ParameterValue": "sg-REPLACE-WITH-PROD-SG"
+  },
+  {
+    "ParameterKey": "SubnetIDs",
+    "ParameterValue": "subnet-REPLACE-PROD-1,subnet-REPLACE-PROD-2"
+  },
+  {
+    "ParameterKey": "LoadBalancerName",
+    "ParameterValue": "my-app-lb-prod"
+  },
+  {
+    "ParameterKey": "DatabaseInstanceClass",
+    "ParameterValue": "db.t3.small"
+  },
+  {
+    "ParameterKey": "TaskSize",
+    "ParameterValue": "Medium"
+  }
+]

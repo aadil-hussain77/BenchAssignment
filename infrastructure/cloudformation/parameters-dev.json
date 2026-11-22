@@ -1,0 +1,38 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "ECSClusterName",
+    "ParameterValue": "my-app-cluster"
+  },
+  {
+    "ParameterKey": "ECSServiceName",
+    "ParameterValue": "benchassignment-myapp-service"
+  },
+  {
+    "ParameterKey": "VpcID",
+    "ParameterValue": "vpc-073159fe6b5c36d03"
+  },
+  {
+    "ParameterKey": "SecurityGroupIDs",
+    "ParameterValue": "sg-02eae285e9e365b8f"
+  },
+  {
+    "ParameterKey": "SubnetIDs",
+    "ParameterValue": "subnet-0977ed91df63808c3,subnet-0fe151da961f0c978"
+  },
+  {
+    "ParameterKey": "LoadBalancerName",
+    "ParameterValue": "my-app-lb"
+  },
+  {
+    "ParameterKey": "DatabaseInstanceClass",
+    "ParameterValue": "db.t3.micro"
+  },
+  {
+    "ParameterKey": "TaskSize",
+    "ParameterValue": "Small"
+  }
+]
