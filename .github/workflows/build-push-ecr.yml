@@ -72,4 +72,13 @@ jobs:
             --services ${{ env.ECS_SERVICE }} \
             --region ${{ env.AWS_REGION }}
 
+      - name: Notify on failure
+        if: failure()
+        run: |
+          aws sns publish \
+          --topic-arn arn:aws:sns:ap-southeast-2:653011867539:myapp-alerts \
+          --subject "Deploy FAILED — ${{ github.ref_name }}" \
+          --message "Commit: ${{ github.sha }}\nActor: ${{ github.actor }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+
 

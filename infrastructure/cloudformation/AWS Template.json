@@ -27,22 +27,50 @@
       "Default": "my-app-lb"
     },
     "DatabaseInstanceClass": {
-  "Type": "String",
-  "Default": "db.t3.micro",
-  "AllowedValues": ["db.t3.micro", "db.t3.small", "db.t3.medium"]
-},
-"TaskSize": {
-  "Type": "String",
-  "Default": "Small",
-  "AllowedValues": ["Small", "Medium", "Large"]
-}
+      "Type": "String",
+      "Default": "db.t3.micro",
+      "AllowedValues": [ "db.t3.micro", "db.t3.small", "db.t3.medium" ]
+    },
+    "TaskSize": {
+      "Type": "String",
+      "Default": "Small",
+      "AllowedValues": [ "Small", "Medium", "Large" ]
+    },
+    "Environment": {
+      "Type": "String",
+      "Default": "dev",
+      "AllowedValues": [ "dev", "prod" ]
+    }
   },
-  "Mappings":{
+  "Mappings": {
     "TaskSizes": {
-  "Small": { "Cpu": "256", "Memory": "512" },
-  "Medium": { "Cpu": "512", "Memory": "1024" },
-  "Large": { "Cpu": "1024", "Memory": "2048" }
-}
+      "Small": {
+        "Cpu": "256",
+        "Memory": "512"
+      },
+      "Medium": {
+        "Cpu": "512",
+        "Memory": "1024"
+      },
+      "Large": {
+        "Cpu": "1024",
+        "Memory": "2048"
+      }
+    },
+    "EnvConfig": {
+      "dev": {
+        "AutoScalingMin": 1,
+        "AutoScalingMax": 2,
+        "CPUScalingTarget": 70,
+        "DesiredCount": 1
+      },
+      "prod": {
+        "AutoScalingMin": 2,
+        "AutoScalingMax": 8,
+        "CPUScalingTarget": 60,
+        "DesiredCount": 2
+      }
+    }
   },
   "Resources": {
     "ECSService": {
@@ -59,7 +87,14 @@
         "TaskDefinition": { "Ref": "EmployeeTaskDefinition" },
         "ServiceName": "benchassignment-myapp-service",
         "SchedulingStrategy": "REPLICA",
-        "DesiredCount": 1,
+        "DesiredCount": {
+          "Fn::FindInMap": [
+            "EnvConfig",
+            { "Ref": "Environment" },
+            "DesiredCount"
+          ]
+        },
+
         "AvailabilityZoneRebalancing": "ENABLED",
         "LoadBalancers": [
           {
@@ -109,104 +144,170 @@
       }
     },
     "EmployeeEcrRepository": {
-  "Type": "AWS::ECR::Repository",
-  "DeletionPolicy": "Retain",
-  "UpdateReplacePolicy": "Retain",
-  "Properties": {
-    "RepositoryName": "benchassignment/myapp"
-  }
-  },
-  "EmployeeDatabase": {
-  "Type": "AWS::RDS::DBInstance",
-  "DeletionPolicy": "Retain",
-  "UpdateReplacePolicy": "Retain",
-  "Properties": {
-    "DBInstanceIdentifier": "my-employeee-db",
-    "DBInstanceClass":  { "Ref": "DatabaseInstanceClass" },
-    "Engine": "postgres",
-    "EngineVersion": "18.3",
-    "AllocatedStorage": "20",
-    "StorageType": "gp2",
-    "DBSubnetGroupName": "my-db-private-subnets",
-    "VPCSecurityGroups": [
-      "sg-08e89981b83ed042a"
-    ],
-    "MultiAZ": false,
-    "PubliclyAccessible": false,
-    "BackupRetentionPeriod": 1,
-    "MasterUsername": "postgres"
-  }
-},
-"EmployeeEcsCluster": {
-  "Type": "AWS::ECS::Cluster",
-  "DeletionPolicy": "Retain",
-  "UpdateReplacePolicy": "Retain",
-  "Properties": {
-    "ClusterName": "my-app-cluster",
-    "ClusterSettings": [
-      {
-        "Name": "containerInsights",
-        "Value": "enabled"
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "RepositoryName": "benchassignment/myapp"
       }
-    ]
-  }
-},
-"EmployeeTaskDefinition": {
-  "Type": "AWS::ECS::TaskDefinition",
-  "DeletionPolicy": "Retain",
-  "UpdateReplacePolicy": "Retain",
-  "Properties": {
-    "Family": "benchassignment-myapp",
-    "Cpu": {
-  "Fn::FindInMap": ["TaskSizes", { "Ref": "TaskSize" }, "Cpu"]
-},
-    "Memory": {
-  "Fn::FindInMap": ["TaskSizes", { "Ref": "TaskSize" }, "Memory"]
-},
-    "NetworkMode": "awsvpc",
-    "RequiresCompatibilities": [
-      "FARGATE"
-    ],
-    "ExecutionRoleArn": "arn:aws:iam::653011867539:role/ecsTaskExecutionRole",
-    "ContainerDefinitions": [
-      {
-        "Name": "myapp",
-        "Image": "653011867539.dkr.ecr.ap-southeast-2.amazonaws.com/benchassignment/myapp:latest",
-        "Essential": true,
-        "PortMappings": [
-          {
-            "ContainerPort": 8080,
-            "Protocol": "tcp"
-          }
+    },
+    "BuildArtifactBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": "benchassignment-myapp-artifacts",
+        "VersioningConfiguration": { "Status": "Enabled" }
+      }
+    },
+    "EmployeeDatabase": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "DBInstanceIdentifier": "my-employeee-db",
+        "DBInstanceClass": { "Ref": "DatabaseInstanceClass" },
+        "Engine": "postgres",
+        "EngineVersion": "18.3",
+        "AllocatedStorage": "20",
+        "StorageType": "gp2",
+        "DBSubnetGroupName": "my-db-private-subnets",
+        "VPCSecurityGroups": [
+          "sg-08e89981b83ed042a"
         ],
-        "Environment": [
+        "MultiAZ": false,
+        "PubliclyAccessible": false,
+        "BackupRetentionPeriod": 1,
+        "MasterUsername": "postgres"
+      }
+    },
+    "EmployeeEcsCluster": {
+      "Type": "AWS::ECS::Cluster",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "ClusterName": "my-app-cluster",
+        "ClusterSettings": [
           {
-            "Name": "ASPNETCORE_ENVIRONMENT",
-            "Value": "Production"
+            "Name": "containerInsights",
+            "Value": "enabled"
+          }
+        ]
+      }
+    },
+    "EmployeeTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Family": "benchassignment-myapp",
+        "Cpu": {
+          "Fn::FindInMap": [
+            "TaskSizes",
+            { "Ref": "TaskSize" },
+            "Cpu"
+          ]
+        },
+        "Memory": {
+          "Fn::FindInMap": [
+            "TaskSizes",
+            { "Ref": "TaskSize" },
+            "Memory"
+          ]
+        },
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "ExecutionRoleArn": "arn:aws:iam::653011867539:role/ecsTaskExecutionRole",
+        "ContainerDefinitions": [
+          {
+            "Name": "myapp",
+            "Image": "653011867539.dkr.ecr.ap-southeast-2.amazonaws.com/benchassignment/myapp:latest",
+            "Essential": true,
+            "PortMappings": [
+              {
+                "ContainerPort": 8080,
+                "Protocol": "tcp"
+              }
+            ],
+            "Environment": [
+              {
+                "Name": "ASPNETCORE_ENVIRONMENT",
+                "Value": "Production"
+              },
+              {
+                "Name": "ASPNETCORE_HTTP_PORTS",
+                "Value": "8080"
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "ConnectionStrings__DefaultConnection",
+                "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:653011867539:secret:benchassignment/rds-connection-GJj4y7:ConnectionStrings__DefaultConnection::"
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/ecs/benchassignment",
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-stream-prefix": "myapp"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ECSAutoScalingTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "DependsOn": "ECSService",
+      "Properties": {
+        "MinCapacity": {
+          "Fn::FindInMap": [
+            "EnvConfig",
+            { "Ref": "Environment" },
+            "AutoScalingMin"
+          ]
+        },
+        "MaxCapacity": {
+          "Fn::FindInMap": [
+            "EnvConfig",
+            { "Ref": "Environment" },
+            "AutoScalingMax"
+          ]
+        },
+        "ResourceId": { "Fn::Sub": "service/my-app-cluster/benchassignment-myapp-service" },
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs"
+      }
+    },
+
+    "ECSScalingPolicyCPU": {
+      "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties": {
+        "PolicyName": "myapp-cpu-scaling",
+        "PolicyType": "TargetTrackingScaling",
+        "ScalingTargetId": { "Ref": "ECSAutoScalingTarget" },
+        "TargetTrackingScalingPolicyConfiguration": {
+          "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
           },
-          {
-            "Name": "ASPNETCORE_HTTP_PORTS",
-            "Value": "8080"
-          }
-        ],
-        "Secrets": [
-          {
-            "Name": "ConnectionStrings__DefaultConnection",
-            "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:653011867539:secret:benchassignment/rds-connection-GJj4y7:ConnectionStrings__DefaultConnection::"
-          }
-        ],
-        "LogConfiguration": {
-          "LogDriver": "awslogs",
-          "Options": {
-            "awslogs-group": "/ecs/benchassignment",
-            "awslogs-region":  { "Ref": "AWS::Region" },
-            "awslogs-stream-prefix": "myapp"
-          }
+          "TargetValue": {
+            "Fn::FindInMap": [
+              "EnvConfig",
+              { "Ref": "Environment" },
+              "CPUScalingTarget"
+            ]
+          },
+          "ScaleInCooldown": 120,
+          "ScaleOutCooldown": 60
         }
       }
-    ]
-  }
-}
+    }
+
   },
   "Outputs": {
     "ClusterName": {
