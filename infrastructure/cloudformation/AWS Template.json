@@ -148,7 +148,11 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "RepositoryName": "benchassignment/myapp"
+        "RepositoryName": "benchassignment-myapp",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true // ← ADD THIS
+        },
+        "ImageTagMutability": "MUTABLE"
       }
     },
     "BuildArtifactBucket": {
@@ -284,9 +288,11 @@
         "ServiceNamespace": "ecs"
       }
     },
-
     "ECSScalingPolicyCPU": {
       "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "DependsOn": "ECSAutoScalingTarget",
       "Properties": {
         "PolicyName": "myapp-cpu-scaling",
         "PolicyType": "TargetTrackingScaling",
@@ -302,12 +308,11 @@
               "CPUScalingTarget"
             ]
           },
-          "ScaleInCooldown": 120,
+          "ScaleInCooldown": 300,
           "ScaleOutCooldown": 60
         }
       }
     }
-
   },
   "Outputs": {
     "ClusterName": {
