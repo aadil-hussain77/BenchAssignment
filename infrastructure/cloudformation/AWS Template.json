@@ -59,16 +59,16 @@
     },
     "EnvConfig": {
       "dev": {
-        "AutoScalingMin": 1,
-        "AutoScalingMax": 2,
+        "AutoScalingMin": 2,
+        "AutoScalingMax": 4,
         "CPUScalingTarget": 70,
-        "DesiredCount": 1
+        "DesiredCount": 2
       },
       "prod": {
-        "AutoScalingMin": 2,
+        "AutoScalingMin": 4,
         "AutoScalingMax": 8,
         "CPUScalingTarget": 60,
-        "DesiredCount": 2
+        "DesiredCount": 4
       }
     }
   },
